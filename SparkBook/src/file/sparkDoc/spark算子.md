@@ -71,7 +71,7 @@ object Demo2_FlatMap {
 }
 
 ```
-### 2.2.3 filter
+### filter
 `def filter(f: T => Boolean): RDD[T]`
 ```scala
 package com.qf.bigdata.spark.core.day3
@@ -96,7 +96,7 @@ object Demo2_FlatMap {
   }
 }
 ```
-### 2.2.4 sample
+### sample
 
 > 类似于Hive中的TableSample。
 >
@@ -137,7 +137,7 @@ object Demo3_Sample {
   }
 }
 ```
-### 2.2.5 union
+### union
 
 > ```scala
 > def union(other: RDD[T]): RDD[T] // 将两个RDD进行合并的方法
@@ -173,7 +173,7 @@ object Demo4_Union {
 }
 
 ```
-### 2.2.6 distinct
+### distinct
 
 > 去重
 >
@@ -202,7 +202,7 @@ object Demo5_Distinct {
   }
 }
 ```
-### 2.2.7 join
+### join
 
 >join算子就是和sql的join查询一样的功能。但是这里如果想要 使用join算子，有一个前提：
 >
@@ -323,7 +323,7 @@ object Demo6_Join {
   }
 }
 ```
-## 2.2.8 groupByKey
+##  groupByKey
 
 > groupBy —— 分组，由自己去指定字段分组
 >
@@ -371,7 +371,7 @@ object Demo7 {
   }
 }
 ```
-### 2.2.9 groupBy
+### groupBy
 
 ```scala
 def groupBy[K](f: T => K)(implicit kt: ClassTag[K]): RDD[(K, Iterable[T])]
@@ -408,7 +408,7 @@ object Demo7 {
 }
 
 ```
-### 2.2.10 reduceByKey
+### reduceByKey
 
 > 和GroupByKey一样，需要先将这个RDD中的元素造成一个二维元祖。
 >
@@ -455,7 +455,7 @@ object Demo8_ReduceByKey {
  def reduce(f: (T, T) => T): T
 `
 
-### 2.2.11 sortByKey
+### sortByKey
 
 > RDD中的元素必须是二维元祖。无论是sortBy还是sortByKey也好，他们都只能保证**分区内有序**。
 
@@ -509,7 +509,7 @@ object Demo9_SortByKey {
   }
 }
 ```
-### 2.2.12 mapPartitions
+### mapPartitions
 
 > map算子的升级版。map算子的批处理版。此算子，一个分区作为一个批次来进行数据处理。
 >
@@ -519,7 +519,7 @@ object Demo9_SortByKey {
 >     preservesPartitioning: Boolean = false): RDD[U
 > ```
 >
-### 2.2.13 mapPartitionsWithIndex
+### mapPartitionsWithIndex
 
 > 是mapPartitions的升级版，他比前者多一个index（分区的索引）
 >
@@ -555,7 +555,7 @@ object Demo10_MapPartitions {
   }
 }
 ```
-### 2.2.14 repatition和coalesce
+### repatition和coalesce
 
 > ​	重分区。其实repatition是coalesce实现的。coalesce默认使用的是窄依赖，repatition是宽依赖的。一般使用的时候对于分区的情况我们都用coalesce；分区增加使用的是repatition。
 >
@@ -598,7 +598,7 @@ object Demo11_Repatition {
 }
 
 ```
-### 2.2.15 CombineByKey
+### CombineByKey
 
 > ​	通过观察底层(ReduceByKey、GroupByKey)源码，发现他们的底层源码都是通过CombineByKeyWithClassTag这个函数来实现的。
 >
@@ -617,7 +617,7 @@ object Demo11_Repatition {
 > ```
 ![](./../../images/sparkImages/spark算子/014.png)
 ![](./../../images/sparkImages/spark算子/015.png)
-#### 2.2.15.1 重写GroupByKey
+#### 重写GroupByKey
 
 ```scala
 package com.qf.bigdata.spark.core.day3
@@ -710,7 +710,7 @@ object Demo12_CombineByKey_GBK {
 }
 
 ```
-#### 2.2.15.2 重写ReduceByKey
+#### 重写ReduceByKey
 
 ```scala
 package com.qf.bigdata.spark.core.day3
@@ -744,6 +744,318 @@ object Demo13_CombineByKey {
 }
 
 ```
-### 2.2.16 aggregateByKey
+### aggregateByKey
 
-> 他的底层也是通过CombineByKeyWithClassTag实现的。
+> 他的底层也是通过CombineByKeyWithClassTag实现的。他也是自定义算子，用来模拟其他算子的。
+>
+> ```scala
+> aggregateByKey[U: ClassTag]
+> 	(zeroValue: U) // 初始化值
+> 	(seqOp: (U, V) => U, // 局部聚合
+>      combOp: (U, U) => U) // 全局聚合
+> : RDD[(K, U)]
+> ```
+
+##### 2.2.16.1 重写GroupByKey
+
+```scala
+package com.qf.bigdata.spark.core.day4
+
+import com.qf.bigdata.spark.core.day3.SparkUtils
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
+
+import scala.collection.mutable.ArrayBuffer
+
+object Demo1_AggregateByKey_GBK {
+  def main(args: Array[String]): Unit = {
+    val sc: SparkContext = SparkUtils.getLocalSparkContext()
+
+    //1. 加载数据
+    val stuRDD: RDD[String] = sc.parallelize(List(
+      "王东阳,zzbigdata2201",
+      "徐明伟,zzbigdata2201",
+      "毕帆,zzbigdata2201",
+      "徐娟娟,hzbigdata2102",
+      "乌力吉,hzbigdata2102"
+    ), 3)
+
+    //2. 查看哪些数据在哪些区
+    val class2InfoRDD: RDD[(String, String)] = stuRDD.mapPartitionsWithIndex {
+      case (partitionId, partitions) => {
+//        println(s"${partitionId} : ${partitions.mkString(",")}")
+        partitions.map(line => {
+          val index = line.lastIndexOf(",")
+          val className = line.substring(index + 1)
+          val info = line.substring(0, index)
+          (className, info)
+        }).toIterator
+      }
+    }
+
+    println("gbk ================================================")
+    val gbkRDD: RDD[(String, Iterable[String])] = class2InfoRDD.groupByKey()
+    gbkRDD.foreach(println)
+
+    println("aggregateByKey ---> GBK ================================================")
+    val abkGBK: RDD[(String, ArrayBuffer[String])] = class2InfoRDD.aggregateByKey(ArrayBuffer[String]())(
+      seqOp, combOp
+    )
+    abkGBK.foreach(println)
+
+
+    SparkUtils.close(sc)
+  }
+
+  /**
+   * 局部聚合
+   */
+  def seqOp(ab:ArrayBuffer[String], stu:String):ArrayBuffer[String] = {
+    ab.append(stu)
+    ab
+  }
+
+  /**
+   * 全局聚合
+   * @param ab1 : sum
+   * @param ab2 : i
+   */
+  def combOp(ab1:ArrayBuffer[String], ab2:ArrayBuffer[String]):ArrayBuffer[String] = ab1.++:(ab2)
+}
+```
+
+##### 2.2.16.2 重写ReduceByKey
+
+```scala
+package com.qf.bigdata.spark.core.day4
+
+import com.qf.bigdata.spark.core.day3.SparkUtils
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
+
+object Demo2_AggregateByKey_RBK {
+  def main(args: Array[String]): Unit = {
+    val sc: SparkContext = SparkUtils.getLocalSparkContext()
+
+    val lineRDD: RDD[String] = sc.parallelize(List(
+      "hello hello hello",
+      "me you him"
+    ))
+
+    val mapRDD: RDD[(String, Int)] = lineRDD.flatMap(_.split("\\s+")).map((_, 1))
+
+    // reduceByKey
+    println("reduceByKey===============================")
+    mapRDD.reduceByKey(_+_).foreach(println)
+
+    println("aggregateByKey ========================= reduceByKey ==================================")
+
+    mapRDD.aggregateByKey(0)(_+_, _+_).foreach(println)
+    
+    SparkUtils.close(sc)
+  }
+}
+```
+
+### 3 Action算子
+
+#### 3.1 介绍
+
+> ​	action算子的作用是用来驱动转换算子的，说白了就是，转换算子是延迟加载，没有action算子的驱动，转换算子是不执行的！！！所以一个spark程序中至少得有一个action算子。
+>
+> ​	如果RDD中有多个分区，所有的算子都是在RDD上的分区中执行的，而不是在本地Driver中执行
+
+#### 3.2 操作
+
+##### 3.2.1 foreach
+
+##### 3.2.2 count
+
+> 作用：统计RDD中的元素的个数
+>
+> ```scala
+> def count(): Long
+> ```
+
+```scala
+package com.qf.bigdata.spark.core.day4
+
+import com.qf.bigdata.spark.core.day3.SparkUtils
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
+
+object Demo3_Count {
+  def main(args: Array[String]): Unit = {
+    val sc: SparkContext = SparkUtils.getLocalSparkContext()
+    val listRDD: RDD[Int] = sc.parallelize(1 to 100)
+    println(listRDD.count())
+    SparkUtils.close(sc)
+  }
+}
+```
+
+##### 3.2.3 take(n)
+
+> 作用：返回RDD中的前n个元素。多用于求去topn的业务
+>
+> ```scala
+> def take(num: Int): Array[T]
+> ```
+
+```scala
+package com.qf.bigdata.spark.core.day4
+
+import com.qf.bigdata.spark.core.day3.SparkUtils
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
+
+object Demo3_Take {
+  def main(args: Array[String]): Unit = {
+    val sc: SparkContext = SparkUtils.getLocalSparkContext()
+    val listRDD: RDD[Int] = sc.parallelize(1 to 100)
+    println(listRDD.take(3).mkString(","))
+    SparkUtils.close(sc)
+  }
+}
+```
+
+##### 3.2.4 first
+
+> 取RDD中的第一个元素
+
+```scala
+package com.qf.bigdata.spark.core.day4
+
+import com.qf.bigdata.spark.core.day3.SparkUtils
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
+
+object Demo3_First {
+  def main(args: Array[String]): Unit = {
+    val sc: SparkContext = SparkUtils.getLocalSparkContext()
+    val listRDD: RDD[Int] = sc.parallelize(1 to 100)
+    val first: Int = listRDD.first()
+    println(first)
+    SparkUtils.close(sc)
+  }
+}
+```
+
+##### 3.2.5 collect
+
+> ​	字面解释，收集，这里表示拉取。这个算子的作用就是将不同分区的数据拉取到本地处理，但是这个算子有很大的风险，第一，他会导致driver所在的服务器的内存压力大；第二，在网络中进行大规模的数据传入本身存在巨大的风险；第三，大规模在网络中的传输数据速度很慢。
+
+![](016.png)
+
+
+
+##### 3.2.6 reduce
+
+> 在spark中reduce是一个action算子。reduce不分组，只是对RDD专用的所有的元素进行聚合
+>
+> ```scala
+> def reduce(f: (T, T) => T): T
+> ```
+
+```scala
+package com.qf.bigdata.spark.core.day4
+
+import com.qf.bigdata.spark.core.day3.SparkUtils
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
+
+object Demo4_Reduce {
+  def main(args: Array[String]): Unit = {
+    val sc: SparkContext = SparkUtils.getLocalSparkContext()
+
+    val userRDD: RDD[(String, String)] = sc.parallelize(List(
+      ("name", "lixi"),
+      ("age", "36"),
+      ("gender", "male")
+    ))
+
+    //1. 匿名函数
+    /*
+     * ((String, String), (String, String)) => (String, String)
+     */
+//    val res1: (String, String) = userRDD.reduce(kv:Tuple2[String, String] => kv._1 + "_" + kv._2)
+//    println(res1)
+    println("----")
+
+    //2. 匹配模式
+    val res2: (String, String) = userRDD.reduce {
+      case ((k1, v1), (k2, v2)) => (k1 + "_" + k2, v1 + "_" + v2)
+    }
+    println(res2)
+
+    SparkUtils.close(sc)
+  }
+}
+```
+
+##### 3.2.7 countByKey
+
+> 长得比较像转换算子，但是其实他是action算子。
+>
+> 作用：统计key的次数
+
+```scala
+package com.qf.bigdata.spark.core.day4
+
+import com.qf.bigdata.spark.core.day3.SparkUtils
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
+
+object Demo5_CountByKey {
+  def main(args: Array[String]): Unit = {
+    val sc: SparkContext = SparkUtils.getLocalSparkContext()
+
+    val userRDD: RDD[(String, String)] = sc.parallelize(List(
+      ("name", "lixi"),
+      ("age", "36"),
+      ("gender", "male"),
+      ("name", "rocklee")
+    ))
+
+    val map: collection.Map[String, Long] = userRDD.countByKey()
+    println(map)
+
+    SparkUtils.close(sc)
+  }
+}
+```
+
+##### 3.2.8 saveAsTextFile
+
+> 作用：以文本文件的形式保存数据（本地文件系统、HDFS）
+>
+> ```scala
+> def saveAsTextFile(path: String): Unit
+> ```
+
+```scala
+package com.qf.bigdata.spark.core.day4
+
+import com.qf.bigdata.spark.core.day3.SparkUtils
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
+
+object Demo5_CountByKey {
+  def main(args: Array[String]): Unit = {
+    val sc: SparkContext = SparkUtils.getLocalSparkContext()
+
+    val userRDD: RDD[(String, String)] = sc.parallelize(List(
+      ("name", "lixi"),
+      ("age", "36"),
+      ("gender", "male"),
+      ("name", "rocklee")
+    ))
+
+    userRDD.saveAsTextFile("src/main/resources/1")
+
+    SparkUtils.close(sc)
+  }
+}
+```
+
+
