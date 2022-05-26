@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="52983b33-70ef-4478-ba90-a80bb29f2feb" name="ftp://10.8.157.15/ZZBIGDATA-2201" url="ftp://10.8.157.15">
+        <fileTransfer host="10.8.157.15" port="21">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

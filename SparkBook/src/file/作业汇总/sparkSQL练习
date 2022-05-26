@@ -1,0 +1,42 @@
+1. 统计出每一个省份广告被点击次数的 TOP3
+# 数据结构：时间戳，省份，城市，用户，广告 ，样本如下，字段使用空格分割
+1516609143867 6 7 64 16
+1516609143869 9 4 75 18
+1516609143869 1 7 87 12
+
+
+2. 读取本地文件words.txt,统计出每个单词的个数，保存数据到 hdfs 上
+
+3. 使用Spark广播变量
+# 学生表：
+id name age gender(0|1)
+001,刘向前,18,0
+002,冯 剑,28,1
+003,李志杰,38,0
+004,郭 鹏,48,1
+# 要求，输出学生信息，gender必须为男或者女，不能为0,1
+# 使用广播变量把Map("0" -> "女", "1" -> "男")设置为广播变量，最终输出格式为:
+001,刘向前,18,女
+003,李志杰,38,女
+002,冯 剑,28,男
+004,郭 鹏,48,男
+
+
+4. mysql创建一个数据库bigdata0407，在此数据库中创建一张表
+CREATE TABLE bigdata.user (
+ id int(11) NOT NULL AUTO_INCREMENT,
+ username varchar(32) NOT NULL COMMENT '用户名称',
+ birthday date DEFAULT NULL COMMENT '生日',
+ sex char(1) DEFAULT NULL COMMENT '性别',
+ address varchar(256) DEFAULT NULL COMMENT '地址',
+ PRIMARY KEY (id)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+-- 数据如下：
+-- 依次是：姓名 生日 性别 省份
+安荷 1998/2/7 女 江苏省
+白秋 2000/3/7 女 天津市
+雪莲 1998/6/7 女 湖北省
+宾白 1999/7/3 男 河北省
+宾实 2000/8/7 男 河北省
+斌斌 1998/3/7 男 江苏省
+-- 请使用spark将以上数据写入mysql中，并读取出来

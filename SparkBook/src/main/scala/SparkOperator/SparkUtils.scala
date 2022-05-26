@@ -11,9 +11,7 @@ package SparkOperator
 object SparkUtils {
 
 }
-object DataForMatUtils{
-
-}
-object ipFormatUtils{
-
-}
+object DataForMatUtils{}
+object IpFormatUtils{}
+object SprkLocalContext{}
+object SparkLocalSession{}
