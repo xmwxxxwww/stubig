@@ -1,0 +1,6 @@
+zhangsan,23,false,0
+lisi,24,false,0
+wangwu,25,false,0
+zhaoliu,26,true,1
+zhouqi,27,true,2
+weiba,28,true,3

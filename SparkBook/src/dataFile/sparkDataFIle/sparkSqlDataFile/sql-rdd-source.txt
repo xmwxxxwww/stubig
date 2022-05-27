@@ -1,0 +1,6 @@
+1, zhangsan, 13, 175
+2, lisi, 14, 180
+3, wangwu, 15, 175
+4, zhaoliu, 16, 195
+5, zhouqi, 17, 165
+6, weiba, 18, 155

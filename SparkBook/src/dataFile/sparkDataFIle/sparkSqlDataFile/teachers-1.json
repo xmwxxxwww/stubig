@@ -1,0 +1,6 @@
+{"name":"zhangsan", "age": 23, "married": false, "children": 0}
+{"name":"lisi", "age": 24, "married": false, "children": 0}
+{"name":"wangwu", "age": 25, "married": false, "children": 0}
+{"name":"zhaoliu", "age": 26, "married": true, "children": 1}
+{"name":"zhouqi", "age": 27, "married": true, "children": 2}
+{"name":"weiba", "age": 28, "married": true, "children": 3}
